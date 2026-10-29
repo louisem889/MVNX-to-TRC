@@ -1,0 +1,28 @@
+# Recordings and outputs - never commit participant data
+*.mvnx
+*.mvn
+*.trc
+*.mp4
+*.mov
+*.avi
+*_viewer.html
+converted/
+original trc/
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Old local files (no longer used)
+README.txt
+marker_model.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

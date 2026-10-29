@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__ – MVNX vs TRC</title>
+<style>
+:root{
+  --bg:#0f1216; --panel:#171b21; --panel2:#1e232b; --line:#2a313b; --text:#e6e9ee; --muted:#8b95a3;
+  --xs:#f0a03c; --xsl:#7d8593; --bone:#5b6472; --trc:#4aa8ff; --stick:#2f6ea8;
+  --ok:#3fbf7f; --warn:#e5c14a; --bad:#ef5b5b; --sel:#ffffff; --accent:#4aa8ff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto 1fr auto;height:100vh}
+header{grid-column:1/3;display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;min-width:0;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:14px;margin:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .files{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+#summary{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+#summary b{color:var(--text)}
+#view{position:relative;min-height:0;min-width:0}
+#cv{width:100%;height:100%;display:block;cursor:grab}
+#cv:active{cursor:grabbing}
+#legend{position:absolute;left:10px;top:10px;background:rgba(23,27,33,.85);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px}
+#legend div{display:flex;align-items:center;gap:7px;margin:2px 0}
+.sw{width:10px;height:10px;border-radius:50%;display:inline-block}
+.swl{width:16px;height:3px;border-radius:2px;display:inline-block}
+#hint{position:absolute;right:10px;top:10px;color:var(--muted);font-size:11px;text-align:right;background:rgba(23,27,33,.7);padding:6px 8px;border-radius:6px}
+#views{position:absolute;right:10px;bottom:10px;display:flex;gap:6px}
+aside{grid-row:2/4;grid-column:2;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+aside .sec{padding:10px 12px;border-bottom:1px solid var(--line)}
+aside h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
+.toggles label{display:flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=number]{width:64px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+select,button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:4px 9px;font:inherit;cursor:pointer}
+button:hover,select:hover{border-color:var(--accent)}
+button.on{background:var(--accent);color:#06121f;border-color:var(--accent)}
+#tablewrap{overflow:auto;flex:1;min-height:0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{position:sticky;top:0;background:var(--panel);color:var(--muted);font-weight:600;text-align:right;padding:5px 6px;border-bottom:1px solid var(--line);cursor:pointer;font-size:11px}
+th:first-child,td:first-child{text-align:left}
+td{padding:3px 6px;text-align:right;border-bottom:1px solid #1f242c;white-space:nowrap}
+tr{cursor:pointer}
+tr:hover td{background:#1c2129}
+tr.sel td{background:#243042}
+td .pair{color:var(--muted);font-size:11px}
+.tag{font-size:10px;padding:0 5px;border-radius:8px;margin-left:4px}
+.tag.exact{background:#18392a;color:var(--ok)}
+.tag.nearest{background:#2a2f38;color:var(--muted)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+footer{grid-column:1;border-top:1px solid var(--line);background:var(--panel);padding:8px 12px}
+#transport{display:flex;align-items:center;gap:10px}
+#slider{flex:1;accent-color:var(--accent)}
+#tlabel{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;font-size:12px;white-space:nowrap}
+#transport{flex-wrap:wrap}#slider{min-width:120px}
+#chartwrap{margin-top:6px;position:relative}
+#chart{width:100%;height:70px;display:block;background:var(--panel2);border-radius:6px;cursor:crosshair}
+#chartlbl{position:absolute;left:8px;top:4px;font-size:11px;color:var(--muted);pointer-events:none}
+@media (max-width:820px){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 55vh auto auto;height:auto;min-height:100vh}
+  #hint{display:none}#legend{font-size:11px;padding:5px 7px}
+  aside{grid-row:auto;grid-column:1;border-left:0;border-top:1px solid var(--line);max-height:60vh}
+  header{grid-column:1}#summary{display:none}footer{grid-column:1}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>MVNX ↔ TRC check</h1>
+    <span class="files" id="files"></span>
+    <span id="summary"></span>
+  </header>
+  <div id="view">
+    <canvas id="cv"></canvas>
+    <div id="legend">
+      <div><span class="sw" style="background:var(--xs)"></span>MVNX joint centre</div>
+      <div><span class="sw" style="background:var(--xsl)"></span>MVNX landmark</div>
+      <div><span class="swl" style="background:var(--bone)"></span>MVNX bone</div>
+      <div><span class="sw" style="background:var(--trc)"></span>TRC marker</div>
+      <div><span class="swl" style="background:var(--ok)"></span>exact pair ≤ threshold</div>
+      <div><span class="swl" style="background:var(--bad)"></span>exact pair &gt; threshold</div>
+      <div><span class="swl" style="background:var(--muted)"></span>nearest point (offset expected)</div>
+    </div>
+    <div id="hint">drag: rotate · right-drag / shift-drag: pan · wheel: zoom<br>space: play/pause · ← →: step · click a marker or table row to select</div>
+    <div id="views">
+      <button data-v="front">Front</button><button data-v="side">Side</button><button data-v="top">Top</button><button data-v="reset">Reset</button>
+    </div>
+  </div>
+  <aside>
+    <div class="sec">
+      <h2>Show</h2>
+      <div class="toggles">
+        <label><input type="checkbox" id="tJoints" checked>MVNX joints</label>
+        <label><input type="checkbox" id="tBones" checked>MVNX bones</label>
+        <label><input type="checkbox" id="tLand">MVNX landmarks</label>
+        <label><input type="checkbox" id="tTrc" checked>TRC markers</label>
+        <label><input type="checkbox" id="tSticks" checked>TRC sticks</label>
+        <label><input type="checkbox" id="tPairs" checked>Pair lines</label>
+        <label><input type="checkbox" id="tLabels">Labels</label>
+        <label><input type="checkbox" id="tFloor" checked>Floor grid</label>
+        <label><input type="checkbox" id="tFollow" checked>Follow pelvis</label>
+        <label><input type="checkbox" id="tExactOnly">Exact pairs only</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span>Threshold</span><input type="number" id="thr" value="10" min="0" step="1"><span>mm</span>
+      </div>
+    </div>
+    <div class="sec" style="padding-bottom:6px">
+      <h2>Marker ↔ MVNX distance (mm)</h2>
+      <div style="color:var(--muted);font-size:11px">“exact” (listed first, coloured): marker should sit on this MVNX point → ~0 mm · “nearest”: no MVNX equivalent, paired with the closest point → a constant offset is normal</div>
+    </div>
+    <div id="tablewrap">
+      <table>
+        <thead><tr><th data-k="name">TRC marker</th><th data-k="now">now</th><th data-k="mean">mean</th><th data-k="max">max</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </aside>
+  <footer>
+    <div id="transport">
+      <button id="play">▶ Play</button>
+      <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>4</option><option>8</option></select>
+      <input type="range" id="slider" min="0" value="0">
+      <span id="tlabel"></span>
+    </div>
+    <div id="chartwrap"><canvas id="chart"></canvas><span id="chartlbl"></span></div>
+  </footer>
+</div>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("data").textContent);
+const bin = atob(D.b64); const u8 = new Uint8Array(bin.length);
+for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+const P = new Int16Array(u8.buffer);
+const NX = D.xsNames.length, NT = D.trcNames.length, K = NX + NT, N = D.n;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {}; ["xs","xsl","bone","trc","stick","ok","warn","bad","sel","line","muted","text"].forEach(k => C[k] = css("--"+k));
+
+function pt(f, k){ const o = (f*K + k)*3; return P[o] === -32768 ? null : [P[o], P[o+1], P[o+2]]; }
+function dist(a, b){ return (a && b) ? Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]) : NaN; }
+
+// ---------- header
+document.getElementById("files").textContent = D.mvnx + "  vs  " + D.trc;
+(function(){
+  const ex = D.stats.filter((s,i)=>D.ptype[i]==="exact");
+  const m = ex.length ? ex.reduce((a,s)=>a+s.mean,0)/ex.length : NaN;
+  const mx = ex.length ? Math.max(...ex.map(s=>s.max)) : NaN;
+  document.getElementById("summary").innerHTML =
+    `${D.nFull} frames @ ${D.srcRate} Hz · exact pairs: mean <b>${m.toFixed(2)} mm</b>, max <b>${mx.toFixed(2)} mm</b>`;
+})();
+
+// ---------- camera
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+let W=0,H=0,DPR=1;
+const cam = {yaw: -0.6, pitch: 0.25, dist: 3200, target: [0,0,900], pan:[0,0,0]};
+function resize(){ DPR = window.devicePixelRatio||1; const r = cv.getBoundingClientRect(); W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); draw(); drawChart(); }
+function basis(){
+  const cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch), cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw);
+  const d=[cp*cy, cp*sy, sp];                     // from target to camera
+  const t=[cam.target[0]+cam.pan[0], cam.target[1]+cam.pan[1], cam.target[2]+cam.pan[2]];
+  const pos=[t[0]+d[0]*cam.dist, t[1]+d[1]*cam.dist, t[2]+d[2]*cam.dist];
+  const f=[-d[0],-d[1],-d[2]];
+  let r=[f[1]*1-f[2]*0, f[2]*0-f[0]*1, 0]; const rl=Math.hypot(r[0],r[1])||1; r=[r[0]/rl,r[1]/rl,0];
+  const u=[r[1]*f[2]-r[2]*f[1], r[2]*f[0]-r[0]*f[2], r[0]*f[1]-r[1]*f[0]];
+  return {pos,f,r,u};
+}
+let B = basis();
+const FOC = () => 0.9*Math.min(W,H)*1.6;
+function proj(p){
+  if(!p) return null;
+  const v=[p[0]-B.pos[0], p[1]-B.pos[1], p[2]-B.pos[2]];
+  const z=v[0]*B.f[0]+v[1]*B.f[1]+v[2]*B.f[2]; if(z<50) return null;
+  const x=v[0]*B.r[0]+v[1]*B.r[1]+v[2]*B.r[2], y=v[0]*B.u[0]+v[1]*B.u[1]+v[2]*B.u[2];
+  const s=FOC()/z; return [W/2+x*s, H/2-y*s, z, s];
+}
+
+// ---------- state
+let frame=0, playing=false, speed=1, sel=-1, lastT=null, acc=0;
+const $ = id => document.getElementById(id);
+const opt = () => ({joints:$("tJoints").checked, bones:$("tBones").checked, land:$("tLand").checked, trc:$("tTrc").checked,
+  sticks:$("tSticks").checked, pairs:$("tPairs").checked, labels:$("tLabels").checked, floor:$("tFloor").checked,
+  follow:$("tFollow").checked, exactOnly:$("tExactOnly").checked, thr:+$("thr").value||0});
+let screenPts = [];
+
+function colorFor(d, thr){ return isNaN(d) ? C.muted : (d<=thr ? C.ok : (d<=3*thr ? C.warn : C.bad)); }
+
+function draw(){
+  if(!W) return;
+  const o = opt();
+  if(o.follow){ const pp = pt(frame, D.pelvis); if(pp) cam.target=[pp[0],pp[1],pp[2]]; }
+  B = basis();
+  ctx.clearRect(0,0,W,H);
+  // floor grid
+  if(o.floor){
+    const t=cam.target, z=D.floor, step=250, n=12;
+    const cx=Math.round(t[0]/step)*step, cy=Math.round(t[1]/step)*step;
+    ctx.lineWidth=1; ctx.strokeStyle=C.line;
+    ctx.beginPath();
+    for(let i=-n;i<=n;i++){
+      let a=proj([cx+i*step,cy-n*step,z]), b=proj([cx+i*step,cy+n*step,z]); if(a&&b){ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
+      a=proj([cx-n*step,cy+i*step,z]); b=proj([cx+n*step,cy+i*step,z]); if(a&&b){ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
+    }
+    ctx.stroke();
+  }
+  const X = []; for(let k=0;k<NX;k++) X.push(pt(frame,k));
+  const T = []; for(let k=0;k<NT;k++) T.push(pt(frame,NX+k));
+  const PX = X.map(proj), PT = T.map(proj);
+  // bones
+  if(o.bones){ ctx.strokeStyle=C.bone; ctx.lineWidth=3; ctx.lineCap="round"; ctx.beginPath();
+    for(const [a,b] of D.bones){ if(PX[a]&&PX[b]){ctx.moveTo(PX[a][0],PX[a][1]);ctx.lineTo(PX[b][0],PX[b][1]);} } ctx.stroke(); }
+  if(o.sticks && o.trc){ ctx.strokeStyle=C.stick; ctx.lineWidth=1.5; ctx.beginPath();
+    for(const [a,b] of D.sticks){ if(PT[a]&&PT[b]){ctx.moveTo(PT[a][0],PT[a][1]);ctx.lineTo(PT[b][0],PT[b][1]);} } ctx.stroke(); }
+  // pair lines
+  if(o.pairs){ ctx.lineWidth=2;
+    for(let k=0;k<NT;k++){ if(o.exactOnly && D.ptype[k]!=="exact") continue;
+      const a=PT[k], b=PX[D.pairs[k]]; if(!a||!b) continue;
+      const d=dist(T[k], X[D.pairs[k]]); ctx.strokeStyle= D.ptype[k]==="exact" ? colorFor(d,o.thr) : C.muted;
+      ctx.setLineDash(D.ptype[k]==="exact"?[]:[4,3]); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+    ctx.setLineDash([]); }
+  // points sorted by depth (far first)
+  const items=[];
+  for(let k=0;k<NX;k++){ if(!PX[k]) continue; const j=D.xsJoint[k]; if(j? !o.joints : !o.land) continue; items.push([PX[k][2],0,k]); }
+  if(o.trc) for(let k=0;k<NT;k++){ if(!PT[k]) continue; if(o.exactOnly && D.ptype[k]!=="exact") continue; items.push([PT[k][2],1,k]); }
+  items.sort((a,b)=>b[0]-a[0]);
+  screenPts=[];
+  for(const [,src,k] of items){
+    const p = src? PT[k] : PX[k]; const s=p[3];
+    let r = src? Math.max(3, 18*s) : (D.xsJoint[k]? Math.max(4, 24*s) : Math.max(2, 11*s));
+    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,Math.PI*2);
+    if(src){ ctx.fillStyle=C.trc; ctx.fill(); }
+    else if(D.xsJoint[k]){ ctx.strokeStyle=C.xs; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle="rgba(240,160,60,.25)"; ctx.fill(); }
+    else { ctx.fillStyle=C.xsl; ctx.fill(); }
+    if(src) screenPts.push([p[0],p[1],k]);
+  }
+  // selection
+  if(sel>=0 && PT[sel]){
+    const a=PT[sel], b=PX[D.pairs[sel]];
+    ctx.strokeStyle=C.sel; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(a[0],a[1],Math.max(9,40*a[3]),0,Math.PI*2); ctx.stroke();
+    if(b){ ctx.setLineDash([3,3]); ctx.beginPath(); ctx.arc(b[0],b[1],Math.max(9,40*b[3]),0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+    const d=dist(T[sel], X[D.pairs[sel]]);
+    label(a[0]+12,a[1]-12, `${D.trcNames[sel]} ↔ ${D.xsNames[D.pairs[sel]]}: ${d.toFixed(1)} mm`, C.sel, true);
+  }
+  // labels
+  if(o.labels){
+    for(let k=0;k<NT;k++){ if(!PT[k]||k===sel) continue; if(o.exactOnly && D.ptype[k]!=="exact") continue; label(PT[k][0]+6,PT[k][1]-6,D.trcNames[k],C.trc,false); }
+    if(o.joints) for(let k=0;k<NX;k++){ if(!PX[k]||!D.xsJoint[k]) continue; label(PX[k][0]+6,PX[k][1]+12,D.xsNames[k],C.xs,false); }
+  }
+  // time label
+  const t=D.times[frame]; $("tlabel").textContent = `frame ${frame*D.step+1} / ${D.nFull} · ${t.toFixed(2)} s`;
+}
+function label(x,y,txt,col,box){
+  ctx.font = box? "600 12px system-ui,sans-serif" : "11px system-ui,sans-serif";
+  if(box){ const w=ctx.measureText(txt).width; ctx.fillStyle="rgba(15,18,22,.85)"; ctx.fillRect(x-4,y-13,w+8,18); }
+  ctx.fillStyle=col; ctx.fillText(txt,x,y);
+}
+
+// ---------- table
+let sortKey="mean", sortDir=-1;
+const rank = k => D.ptype[k]==="exact" ? 0 : 1;
+const tb=$("tb");
+function buildTable(){
+  const o=opt(); const rows=[];
+  for(let k=0;k<NT;k++){ if(o.exactOnly && D.ptype[k]!=="exact") continue;
+    rows.push({k, name:D.trcNames[k], now:dist(pt(frame,NX+k), pt(frame,D.pairs[k])), mean:D.stats[k].mean, max:D.stats[k].max}); }
+  rows.sort((a,b)=> (rank(a.k)-rank(b.k)) || (sortKey==="name" ? a.name.localeCompare(b.name)*-sortDir : ((a[sortKey]||0)-(b[sortKey]||0))*sortDir));
+  const thr=o.thr;
+  tb.innerHTML = rows.map(r=>`<tr data-k="${r.k}" class="${r.k===sel?"sel":""}"><td>${r.name}<span class="tag ${D.ptype[r.k]}">${D.ptype[r.k]}</span><br><span class="pair">↔ ${D.xsNames[D.pairs[r.k]]}</span></td>`+
+    `<td class="${cls(r.now,thr,r.k)}" data-now="${r.k}">${fmt(r.now)}</td><td class="${cls(r.mean,thr,r.k)}">${fmt(r.mean)}</td><td class="${cls(r.max,thr,r.k)}">${fmt(r.max)}</td></tr>`).join("");
+}
+function updateNow(){
+  const thr=opt().thr;
+  tb.querySelectorAll("td[data-now]").forEach(td=>{ const k=+td.dataset.now; const d=dist(pt(frame,NX+k), pt(frame,D.pairs[k])); td.textContent=fmt(d); td.className=cls(d,thr,k); });
+}
+const fmt = v => isNaN(v)?"–":(v<10?v.toFixed(2):v.toFixed(1));
+const cls = (v,thr,k) => (isNaN(v) || (k!==undefined && D.ptype[k]!=="exact")) ? "" : (v<=thr?"ok":(v<=3*thr?"warn":"bad"));
+tb.addEventListener("click", e=>{ const tr=e.target.closest("tr"); if(!tr) return; select(+tr.dataset.k); });
+document.querySelectorAll("th").forEach(th=>th.addEventListener("click",()=>{ const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=k==="name"?-1:-1;} buildTable(); }));
+function select(k){ sel = (sel===k)? -1 : k; buildTable(); draw(); drawChart(); }
+
+// ---------- distance chart for the selected marker
+const ch=$("chart"), cc=ch.getContext("2d"); let chartCache={k:-2,vals:null};
+function drawChart(){
+  const r=ch.getBoundingClientRect(); ch.width=r.width*DPR; ch.height=r.height*DPR; cc.setTransform(DPR,0,0,DPR,0,0);
+  const w=r.width,h=r.height; cc.clearRect(0,0,w,h);
+  if(sel<0){ $("chartlbl").textContent="Select a marker to see its distance to the MVNX point over the whole recording"; return; }
+  if(chartCache.k!==sel){ const v=new Float32Array(N); for(let f=0;f<N;f++) v[f]=dist(pt(f,NX+sel),pt(f,D.pairs[sel])); chartCache={k:sel,vals:v}; }
+  const v=chartCache.vals; let mx=0; for(const x of v) if(x>mx) mx=x; mx=Math.max(mx, opt().thr*1.2, 1);
+  const thr=opt().thr, y=val=>h-4-(val/mx)*(h-20);
+  cc.strokeStyle=C.line; cc.setLineDash([4,4]); cc.beginPath(); cc.moveTo(0,y(thr)); cc.lineTo(w,y(thr)); cc.stroke(); cc.setLineDash([]);
+  cc.strokeStyle=C.trc; cc.lineWidth=1.2; cc.beginPath();
+  const step=Math.max(1,Math.floor(N/w/2));
+  for(let f=0;f<N;f+=step){ const X=f/(N-1)*w; if(f===0) cc.moveTo(X,y(v[f])); else cc.lineTo(X,y(v[f])); } cc.stroke();
+  const X=frame/(N-1)*w; cc.strokeStyle=C.sel; cc.beginPath(); cc.moveTo(X,0); cc.lineTo(X,h); cc.stroke();
+  const s=D.stats[sel];
+  $("chartlbl").textContent=`${D.trcNames[sel]} ↔ ${D.xsNames[D.pairs[sel]]} · mean ${s.mean.toFixed(1)} · p95 ${s.p95.toFixed(1)} · max ${s.max.toFixed(1)} mm (at ${(s.argmax/D.srcRate).toFixed(2)} s) · click to jump`;
+}
+ch.addEventListener("click", e=>{ const r=ch.getBoundingClientRect(); setFrame(Math.round((e.clientX-r.left)/r.width*(N-1))); });
+
+// ---------- transport
+const slider=$("slider"); slider.max=N-1;
+function setFrame(f){ frame=Math.max(0,Math.min(N-1,f)); slider.value=frame; draw(); updateNow(); drawChart(); }
+slider.addEventListener("input", ()=>setFrame(+slider.value));
+$("play").addEventListener("click", togglePlay);
+$("speed").addEventListener("change", e=>speed=+e.target.value);
+function togglePlay(){ playing=!playing; $("play").textContent=playing?"❚❚ Pause":"▶ Play"; $("play").classList.toggle("on",playing); lastT=null; if(playing) requestAnimationFrame(tick); }
+let lastTable=0;
+function tick(ts){
+  if(!playing) return;
+  if(lastT!==null){ acc += (ts-lastT)/1000*D.rate*speed; const adv=Math.floor(acc); if(adv>0){ acc-=adv; frame+=adv; if(frame>=N) frame=0; slider.value=frame; draw();
+      if(ts-lastTable>150){ updateNow(); drawChart(); lastTable=ts; } } }
+  lastT=ts; requestAnimationFrame(tick);
+}
+document.addEventListener("keydown", e=>{
+  if(e.target.tagName==="INPUT" && e.target.type==="number") return;
+  if(e.code==="Space"){ e.preventDefault(); togglePlay(); }
+  else if(e.key==="ArrowRight"){ setFrame(frame+(e.shiftKey?10:1)); }
+  else if(e.key==="ArrowLeft"){ setFrame(frame-(e.shiftKey?10:1)); }
+});
+["tJoints","tBones","tLand","tTrc","tSticks","tPairs","tLabels","tFloor","tFollow"].forEach(id=>$(id).addEventListener("change",()=>{ if(id==="tFollow") cam.pan=[0,0,0]; draw(); }));
+$("tExactOnly").addEventListener("change",()=>{ buildTable(); draw(); });
+$("thr").addEventListener("input",()=>{ buildTable(); draw(); drawChart(); });
+
+// ---------- mouse / touch
+let drag=null;
+cv.addEventListener("contextmenu", e=>e.preventDefault());
+cv.addEventListener("pointerdown", e=>{ cv.setPointerCapture(e.pointerId); drag={x:e.clientX,y:e.clientY,pan:e.button===2||e.shiftKey,moved:false}; });
+cv.addEventListener("pointermove", e=>{ if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>2) drag.moved=true;
+  drag.x=e.clientX; drag.y=e.clientY;
+  if(drag.pan){ const k=cam.dist/FOC(); for(let i=0;i<3;i++) cam.pan[i]+= -dx*k*B.r[i] + dy*k*B.u[i]; }
+  else { cam.yaw-=dx*0.008; cam.pitch=Math.max(-1.5,Math.min(1.5,cam.pitch+dy*0.008)); }
+  draw(); });
+cv.addEventListener("pointerup", e=>{ if(drag && !drag.moved){ const r=cv.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top;
+    let best=-1,bd=14; for(const [sx,sy,k] of screenPts){ const d=Math.hypot(sx-x,sy-y); if(d<bd){bd=d;best=k;} } if(best>=0) select(best); }
+  drag=null; });
+cv.addEventListener("wheel", e=>{ e.preventDefault(); cam.dist=Math.max(300,Math.min(30000,cam.dist*Math.exp(e.deltaY*0.0012))); draw(); }, {passive:false});
+let pinch=null;
+cv.addEventListener("touchstart", e=>{ if(e.touches.length===2){ pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); } }, {passive:true});
+cv.addEventListener("touchmove", e=>{ if(e.touches.length===2&&pinch){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); cam.dist=Math.max(300,Math.min(30000,cam.dist*pinch/d)); pinch=d; draw(); } }, {passive:true});
+
+// ---------- view presets (relative to the person's facing direction)
+function facing(){
+  const l=pt(frame,D.lhip), r=pt(frame,D.rhip); if(!l||!r) return 0;
+  const v=[l[0]-r[0], l[1]-r[1]];          // points to the person's left
+  return Math.atan2(-v[0], v[1]);           // forward = left x up
+}
+document.querySelectorAll("#views button").forEach(b=>b.addEventListener("click",()=>{
+  const v=b.dataset.v, yaw=facing(); cam.pan=[0,0,0];
+  if(v==="front"){ cam.yaw=yaw; cam.pitch=0.05; }
+  else if(v==="side"){ cam.yaw=yaw-Math.PI/2; cam.pitch=0.05; }
+  else if(v==="top"){ cam.yaw=yaw; cam.pitch=1.45; }
+  else { cam.yaw=yaw+0.7; cam.pitch=0.25; cam.dist=3200; }
+  draw(); }));
+
+window.addEventListener("resize", resize);
+buildTable(); resize();
+setTimeout(()=>{ document.querySelector('#views button[data-v="reset"]').click(); }, 0);
+</script>
+</body>
+</html>
